@@ -25,7 +25,7 @@ int main()
                 ++comand_count;
             }
 
-            char *words[20][20] = {}; //[number of program][words]
+            char *words[20][20] = {}; //[number of program][arguments]
 
             for (int j = 0; j < comand_count; ++j)
             {
@@ -37,8 +37,7 @@ int main()
 
 
             pid_t pid = 0;
-            int count_pipes = 0;
-            count_pipes = comand_count / 2 + 1;
+            int count_pipes = comand_count - 1;
 
             int fd[2 * count_pipes];
             for (int i = 0; i < count_pipes; ++i)
@@ -47,21 +46,21 @@ int main()
                     perror("ERROR IN PIPE");
             }
 
-            for (int i = 0, j = 1; i < comand_count; ++i, j += 2)
+            for (int i = 0, j = 1; i < comand_count; ++i, j += 2) // j - counter of output fd
             {
                 int prev_fd = 0;
                 pid = fork();
                 if (pid == 0)
                 {
-                    if (i == 0)
+                    if (i == 0) // first command
                     {
                         close (1);
-                        if (dup(fd[j]) < 0)
+                        if (dup(fd[j]) < 0) 
                             perror("ERROR IN DUP i == 0");
                         close(fd[j]);
-                        prev_fd = j - 1;
+                        prev_fd = j - 1; // input for pipe in next process
                     }
-                    else if (i > 0 && i < comand_count - 1)
+                    else if (i > 0 && i < comand_count - 1) // between first and last command
                     {
                         close (0);
                         if (dup(fd[prev_fd]) < 0)
@@ -72,9 +71,9 @@ int main()
                         if(dup(fd[j]) < 0)
                             perror("ERROR IN DUP i > 0 (1)");
                         close(fd[j]);
-                        prev_fd = j - 1;
+                        prev_fd = j - 1; // input for pipe in next process
                     }
-                    else if (i == comand_count - 1)
+                    else if (i == comand_count - 1) // last command
                     {
                         close (0);
                         if (dup(fd[prev_fd]) < 0)
@@ -86,9 +85,9 @@ int main()
                         perror("ERROR IN EXEC");
                 }
             }
-            for (int i = 0; i < count_pipes * 2; ++i)
+            for (int i = 0; i < count_pipes * 2; ++i) // closes fd in parent
                 close(fd[i]);
-            for (int i = 0; i < comand_count + 1; ++i)
+            for (int i = 0; i < comand_count + 1; ++i) // waits for all children
                 wait(NULL);
             printf("cucccumba-GL62M-7REX& ");
         }
