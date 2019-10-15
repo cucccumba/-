@@ -76,7 +76,7 @@ int main()
                         if (dup(fd[prev_fd]) < 0)
                             perror("ERROR IN DUP i == comand_count - 1 (0)");
                     }
-                    for (int i = 0; i < 2 * counti_pipes; ++i)
+                    for (int i = 0; i < 2 * count_pipes; ++i)
                         close(fd[i]);
 
                     if (execvp(words[i][0], words[i]) < 0)
