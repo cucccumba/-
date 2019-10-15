@@ -25,7 +25,7 @@ int main()
                 ++comand_count;
             }
 
-            char *words[20][20] = {}; //[number of command][arguments]
+            char *words[20][20] = {}; //[number of program][arguments]
 
             for (int j = 0; j < comand_count; ++j)
             {
@@ -57,33 +57,27 @@ int main()
                         close (1);
                         if (dup(fd[j]) < 0) 
                             perror("ERROR IN DUP i == 0");
-                        for (int i = 0; i < 2 * count_pipes; ++i) //closes all useless fd
-                            close(fd[i]);
-                        prev_fd = j - 1; // fd for input in current pipe
+                        prev_fd = j - 1; // input for pipe in next process
                     }
                     else if (i > 0 && i < comand_count - 1) // between first and last command
                     {
                         close (0);
                         if (dup(fd[prev_fd]) < 0)
                             perror("ERROR IN DUP i > 0 (0)");
-                        close(fd[prev_fd]);
 
                         close (1);
                         if(dup(fd[j]) < 0)
                             perror("ERROR IN DUP i > 0 (1)");
-                        for (int i = 0; i < 2 * count_pipes; ++i)
-                            close(fd[i]);
-                        prev_fd = j - 1; //fd for input in current pipe
-                        
+                        prev_fd = j - 1; // input for pipe in next process
                     }
                     else if (i == comand_count - 1) // last command
                     {
                         close (0);
                         if (dup(fd[prev_fd]) < 0)
                             perror("ERROR IN DUP i == comand_count - 1 (0)");
-                        for (int i = 0; i < 2 * count_pipes; ++i)
-                            close(fd[i]);
                     }
+                    for (int i = 0; i < 2 * counti_pipes; ++i)
+                        close(fd[i]);
 
                     if (execvp(words[i][0], words[i]) < 0)
                         perror("ERROR IN EXEC");
