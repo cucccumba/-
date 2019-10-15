@@ -57,8 +57,11 @@ int main()
                         close (1);
                         if (dup(fd[j]) < 0) 
                             perror("ERROR IN DUP i == 0");
-                        close(fd[j]);
-                        prev_fd = j - 1; // input for pipe in next process
+                        for (int i = 0; i < 2 * count_pipes; ++i)
+                            close(fd[i]);
+                        //close(fd[j]);
+                        //close(fd[j - 1]);
+                        //prev_fd = j - 1; // input for pipe in next process
                     }
                     else if (i > 0 && i < comand_count - 1) // between first and last command
                     {
@@ -70,15 +73,20 @@ int main()
                         close (1);
                         if(dup(fd[j]) < 0)
                             perror("ERROR IN DUP i > 0 (1)");
-                        close(fd[j]);
-                        prev_fd = j - 1; // input for pipe in next process
+                        for (int i = 0; i < 2 * count_pipes; ++i)
+                            close(fd[i]);
+                        //close(fd[j]);
+                        //prev_fd = j - 1; // input for pipe in next process
                     }
                     else if (i == comand_count - 1) // last command
                     {
                         close (0);
                         if (dup(fd[prev_fd]) < 0)
                             perror("ERROR IN DUP i == comand_count - 1 (0)");
-                        close(fd[prev_fd]);
+                        for (int i = 0; i < 2 * count_pipes; ++i)
+                            close(fd[i]);
+                        //close(fd[prev_fd]);
+                        //close(fd[prev_fd + 1]);
                     }
 
                     if (execvp(words[i][0], words[i]) < 0)
