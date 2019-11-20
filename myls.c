@@ -45,7 +45,6 @@ void print_dir_rec(DIR *d, char* dir_name, char *buf)
             e = readdir(d);
         }
     }
-    closedir(d);
     for (int j = 0; j < i; j++)
     {
         char *path_end = strchr(buf, '\0');
