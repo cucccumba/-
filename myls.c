@@ -53,7 +53,6 @@ void print_dir_rec(DIR *d, char* dir_name, char *buf)
         printf("\n");
         print_dir_rec(opendir(buf), dirs[j], buf);
         *path_end = '\0';
-        e = readdir(d);
         printf("\n");
     }
 }
