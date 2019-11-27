@@ -11,6 +11,7 @@
 #include <math.h>
 #include <pwd.h>
 #include <grp.h>
+#include <time.h>
 
 #define print(buf_for_print_rights, name)                               \
 {                                                                       \
@@ -123,7 +124,11 @@ void print_rights(char *buf, char *name, int is_n)
     }
 
     printf("%ld ", statbuf.st_size);
-
+    
+    char *time = ctime(&(statbuf.st_ctim.tv_sec));
+    char *endl = strchr(time, '\n');
+    *endl = '\0';
+    printf("%s ", time);
 }
 void print_dir(DIR *d, int is_a, int is_i, int is_l, int is_n)
 {
@@ -259,6 +264,11 @@ int main(int argc, char *argv[])
 
     if (arg_count == 0)
     {
+        if (is_d)
+        {
+            printf(".\n");
+            return 0;
+        }
         DIR *d = opendir(".");
         char buf[512] = {};
         sprintf(buf, "%s/", ".");
@@ -267,7 +277,7 @@ int main(int argc, char *argv[])
         else
             print_dir(d, is_a, is_i, is_l, is_n);
         closedir(d);
-
+        return 0;
     }
     else
     {
@@ -276,7 +286,7 @@ int main(int argc, char *argv[])
 
         for (int i = 0; i < arg_count; ++i)
         {
-            if (arg[i].type == 0)
+           if (arg[i].type == 0 || is_d)
             {
                 printf("%s\n\n", arg[i].name);
             }
