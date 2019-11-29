@@ -13,33 +13,11 @@
 #include <grp.h>
 #include <time.h>
 
-#define print(buf_for_print_rights, name)                               \
-{                                                                       \
-    if (is_a)                                                           \
-    {                                                                   \
-        if (is_i)                                                       \
-            printf("%lu  ", e->d_ino);                                  \
-        if (is_l || is_n)                                               \
-            print_rights(buf_for_print_rights, name, is_n);             \
-        printf("%s\n",e->d_name);                                       \
-    }                                                                   \
-    else                                                                \
-    {                                                                   \
-        if (e->d_name[0] != '.')                                        \
-        {                                                               \
-            if (is_i)                                                   \
-                printf("%lu  ", e->d_ino);                              \
-            if (is_l || is_n)                                           \
-                print_rights(buf_for_print_rights, name, is_n);         \
-            printf("%s\n", e->d_name);                                  \
-        }                                                               \
-    }                                                                   \
-}
-
 struct argument
 {
     char *name;
     int type;  //! 0: file, 1: directory
+    ino_t ino;
 };
 
 
@@ -47,13 +25,13 @@ void print_rights(char *buf, char *name, int is_n)
 {
     struct stat statbuf = {};
     char *path_end = strchr(buf, '\0');
-    if(name)
+    if(name && strcmp(buf, name) != 0)
     {
         sprintf(path_end, "%s", name);
+        *path_end = '\0';
     }
     if (stat(buf, &statbuf) < 0)
         perror("ERROR in print_rights");
-    *path_end = '\0';
     switch (statbuf.st_mode & S_IFMT)
     {
         case S_IFREG:
@@ -124,45 +102,110 @@ void print_rights(char *buf, char *name, int is_n)
     }
 
     printf("%ld ", statbuf.st_size);
-    
+
     char *time = ctime(&(statbuf.st_ctim.tv_sec));
     char *endl = strchr(time, '\n');
     *endl = '\0';
     printf("%s ", time);
 }
-void print_dir(DIR *d, int is_a, int is_i, int is_l, int is_n)
+void print_dir(DIR *d, char *name, ino_t ino, int is_a, int is_i, int is_l, int is_n, int is_d)
 {
     assert(d);
 
-    struct dirent *e = readdir(d);
-    while (e != NULL)
+    if (is_d)
     {
-        print(e->d_name, NULL);
-        e = readdir(d);
+        if (is_i)
+            printf("%lu ", ino);
+        if (is_l || is_n)
+            print_rights(name, name, is_n);
+        printf("%s\n", name);
+    }
+    else
+    {
+        char buf_for_print_rights[512] = {};
+        sprintf(buf_for_print_rights, "%s/", name);
+        struct dirent *e = readdir(d);
+        while (e != NULL)
+        {
+            if (is_a)
+            {
+                if (is_i)
+                    printf("%lu ", e->d_ino);
+                if (is_l || is_n)
+                    print_rights(buf_for_print_rights, e->d_name, is_n);
+                printf("%s\n", e->d_name);
+            }
+            else
+            {
+                if (e->d_name[0] != '.')
+                {
+                    if (is_i)
+                        printf("%lu ", e->d_ino);
+                    if (is_l || is_n)
+                        print_rights(buf_for_print_rights, e->d_name, is_n);
+                    printf("%s\n", e->d_name);
+                }
+            }
+            e = readdir(d);
+        }
     }
 }
 
-void print_dir_rec(DIR *d, char* dir_name, char *buf, int is_a, int is_i, int is_l, int is_n)
+void print_dir_rec(DIR *d, char* dir_name, ino_t ino, char *buf, int is_a, int is_i, int is_l, int is_n, int is_d)
 {
     assert(d);
+
+
     char *dirs[1024] = {};
     int i = 0;
     struct dirent *e = readdir(d);
     printf("%s:\n", dir_name);
     char buf_for_print_rights[512] = {};
     memcpy(buf_for_print_rights, buf, 512);
-    while (e != NULL)
+
+    if (is_d)
     {
-        if (e->d_type == DT_DIR && strcmp(e->d_name, ".") != 0 && strcmp(e->d_name, "..") != 0)
+        if (is_i)
+            printf("%lu ", ino);
+        if (is_l || is_n)
+            print_rights(dir_name, dir_name, is_n);
+        printf("%s", dir_name);
+    }
+    else
+    {
+        while (e != NULL)
         {
-            dirs[i++] = e->d_name;
-            print(buf_for_print_rights, e->d_name)
-            e = readdir(d);
-        }
-        else
-        {
-            print(buf_for_print_rights, e->d_name)
-            e = readdir(d);
+            if (e->d_type == DT_DIR && strcmp(e->d_name, ".") != 0 && strcmp(e->d_name, "..") != 0)
+            {
+                dirs[i++] = e->d_name;
+                e = readdir(d);
+            }
+            else
+            {
+                char *p = strchr(buf_for_print_rights, '\0');
+                sprintf(p, "%s", e->d_name);
+                if (is_a)
+                {
+                    if (is_i)
+                        printf("%lu ", ino);
+                    if (is_l || is_n)
+                        print_rights(buf_for_print_rights, e->d_name, is_n);
+                    printf("%s\n", e->d_name);
+                }
+                else
+                {
+                    if (e->d_name[0] != '.')
+                    {
+                        if (is_i)
+                            printf("%lu ", ino);
+                        if (is_l || is_n)
+                            print_rights(buf_for_print_rights, e->d_name, is_n);
+                        printf("%s\n", e->d_name);
+                    }
+                }
+                *p = '\0';
+                e = readdir(d);
+            }
         }
     }
     printf("\n");
@@ -170,7 +213,7 @@ void print_dir_rec(DIR *d, char* dir_name, char *buf, int is_a, int is_i, int is
     {
         char *path_end = strchr(buf, '\0');
         sprintf(path_end, "%s/", dirs[j]);
-        print_dir_rec(opendir(buf), dirs[j], buf, is_a, is_i, is_l, is_n);
+        print_dir_rec(opendir(buf), dirs[j], ino, buf, is_a, is_i, is_l, is_n, is_d);
         *path_end = '\0';
     }
 }
@@ -246,6 +289,7 @@ int main(int argc, char *argv[])
                 exit(0);
             }
             arg[i].name = argv[optind + i];
+            arg[i].ino = statbuf.st_ino;
             switch (statbuf.st_mode & S_IFMT)
             {
                 case S_IFREG:
@@ -264,8 +308,15 @@ int main(int argc, char *argv[])
 
     if (arg_count == 0)
     {
+        struct stat statbuf = {};
+        if (stat(".", &statbuf) < 0)
+            perror("ERROR in stat");
         if (is_d)
         {
+            if (is_i)
+                printf("%lu ", statbuf.st_ino);
+            if (is_l || is_n)
+                print_rights(".", ".", is_n);
             printf(".\n");
             return 0;
         }
@@ -273,9 +324,9 @@ int main(int argc, char *argv[])
         char buf[512] = {};
         sprintf(buf, "%s/", ".");
         if(is_R)
-            print_dir_rec(d, ".", buf, is_a, is_i, is_l, is_n);
+            print_dir_rec(d, ".", 0, buf, is_a, is_i, is_l, is_n, is_d);
         else
-            print_dir(d, is_a, is_i, is_l, is_n);
+            print_dir(d, ".", 0, is_a, is_i, is_l, is_n, is_d);
         closedir(d);
         return 0;
     }
@@ -286,9 +337,13 @@ int main(int argc, char *argv[])
 
         for (int i = 0; i < arg_count; ++i)
         {
-           if (arg[i].type == 0 || is_d)
+            if (arg[i].type == 0)
             {
-                printf("%s\n\n", arg[i].name);
+                if (is_i)
+                    printf("%lu ", arg[i].ino);
+                if (is_l || is_n)
+                    print_rights(arg[i].name, arg[i].name, is_n);
+                printf("%s\n", arg[i].name);
             }
             else
             {
@@ -296,9 +351,9 @@ int main(int argc, char *argv[])
                 sprintf(buf, "%s/", arg[i].name);
                 DIR *d = opendir(arg[i].name);
                 if (is_R)
-                    print_dir_rec(d, arg[i].name, buf, is_a, is_i, is_l, is_n);
+                    print_dir_rec(d, arg[i].name, arg[i].ino, buf, is_a, is_i, is_l, is_n, is_d);
                 else
-                    print_dir(d, is_a, is_i, is_l, is_n);
+                    print_dir(d, arg[i].name, arg[i].ino, is_a, is_i, is_l, is_n, is_d);
                 printf("\n");
                 closedir(d);
             }
