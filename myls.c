@@ -187,7 +187,7 @@ void print_dir_rec(DIR *d, char* dir_name, ino_t ino, char *buf, int is_a, int i
                 if (is_a)
                 {
                     if (is_i)
-                        printf("%lu ", ino);
+                        printf("%lu ", e->d_ino);
                     if (is_l || is_n)
                         print_rights(buf_for_print_rights, e->d_name, is_n);
                     printf("%s\n", e->d_name);
@@ -197,7 +197,7 @@ void print_dir_rec(DIR *d, char* dir_name, ino_t ino, char *buf, int is_a, int i
                     if (e->d_name[0] != '.')
                     {
                         if (is_i)
-                            printf("%lu ", ino);
+                            printf("%lu ", e->d_ino);
                         if (is_l || is_n)
                             print_rights(buf_for_print_rights, e->d_name, is_n);
                         printf("%s\n", e->d_name);
